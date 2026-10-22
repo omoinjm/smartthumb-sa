@@ -1,4 +1,4 @@
-"""SmartThumb SA processor.
+"""RekogNail processor.
 
 Triggered by S3 ObjectCreated events on the source bucket (prefix uploads/).
 For each object: validate, create a <=300x300 thumbnail, optionally ask

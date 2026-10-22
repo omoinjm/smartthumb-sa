@@ -1,4 +1,8 @@
-# SmartThumb SA
+<img src="docs/logo.svg" width="72" alt="RekogNail logo">
+
+# RekogNail
+
+_Formerly **SmartThumb SA**, the name used in the original project proposal._
 
 Serverless product-photo thumbnails with AI-suggested labels for South African small businesses.
 A seller uploads a product photo; an S3 event triggers a Python Lambda that validates it, makes a

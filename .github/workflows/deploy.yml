@@ -91,7 +91,7 @@ jobs:
               except urllib.error.HTTPError as e:
                   return e.code, b""
           s, body = status("/")
-          assert s == 200 and b"SmartThumb SA" in body, f"page: {s}"
+          assert s == 200 and b"RekogNail" in body, f"page: {s}"
           assert status("/api/config", "wrong")[0] == 401, "auth not enforced"
           s, body = status("/api/config", code)
           assert s == 200 and "labels_enabled" in json.loads(body), f"config: {s}"

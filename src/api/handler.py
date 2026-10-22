@@ -1,4 +1,4 @@
-"""SmartThumb SA web API (API Gateway HTTP API, payload v2).
+"""RekogNail web API (API Gateway HTTP API, payload v2).
 
 GET  /                 the single-page test app (no auth; the page asks for the team code)
 GET  /api/config       labels toggle, dashboard link, limits

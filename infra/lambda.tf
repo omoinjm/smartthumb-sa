@@ -82,7 +82,7 @@ resource "aws_lambda_permission" "s3_invoke" {
 
 resource "aws_lambda_function" "api" {
   function_name    = local.api_name
-  description      = "SmartThumb web app + API (presigned uploads, results, logs)"
+  description      = "RekogNail web app + API (presigned uploads, results, logs)"
   role             = aws_iam_role.api.arn
   runtime          = "python3.12"
   architectures    = ["x86_64"]
