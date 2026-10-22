@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+.pytest_cache/
+build/
+infra/.terraform/
+infra/*.tfstate*
+infra/terraform.tfvars
+*.auto.tfvars
+results/*.csv
+test_images/real/*
+!test_images/real/README.md
+test_images/generated/
+infra/tfplan

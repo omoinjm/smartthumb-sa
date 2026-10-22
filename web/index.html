@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SmartThumb SA</title>
+<style>
+:root {
+  --bg: #f6f7f9; --panel: #ffffff; --ink: #14171c; --muted: #5d6673; --line: #e2e5ea;
+  --accent: #0b7a5c; --accent-ink: #ffffff; --accent-soft: #e3f3ee;
+  --ok: #157f3b; --ok-soft: #e4f4ea; --warn: #9a5b00; --warn-soft: #fbf0dc; --err: #b3261e; --err-soft: #fbe5e3;
+  --code: #f0f2f5; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1216; --panel: #171b21; --ink: #e8ebef; --muted: #9aa3ae; --line: #2a3038;
+    --accent: #3cc49a; --accent-ink: #06261c; --accent-soft: #15302a;
+    --ok: #5fd08a; --ok-soft: #15301f; --warn: #f0b44c; --warn-soft: #33270f; --err: #ff8a80; --err-soft: #3a1714;
+    --code: #11151a; --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { background: var(--panel); border-bottom: 1px solid var(--line); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
+.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 0 10px; }
+.brand { display: flex; gap: 10px; align-items: center; }
+.brand b { font-size: 18px; letter-spacing: -.01em; }
+.brand span { color: var(--muted); font-size: 13px; }
+.who { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
+nav { display: flex; gap: 4px; overflow-x: auto; }
+nav button { border: 0; background: none; color: var(--muted); padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
+nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+main { padding: 20px 0 60px; }
+section[hidden] { display: none; }
+h2 { font-size: 17px; margin: 0 0 4px; }
+p.sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-width: 0; }
+.btn { font: inherit; font-weight: 600; padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.small { padding: 3px 9px; font-size: 13px; }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; background: var(--code); color: var(--muted); }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.rejected, .pill.WARN, .pill.pending { background: var(--warn-soft); color: var(--warn); }
+.pill.error, .pill.ERROR, .pill.fail { background: var(--err-soft); color: var(--err); }
+.pill.pass { background: var(--ok-soft); color: var(--ok); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 36px 16px; text-align: center; background: var(--panel); cursor: pointer; transition: border-color .15s, background .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop b { display: block; font-size: 16px; margin-bottom: 4px; }
+.drop small { color: var(--muted); }
+.results { display: grid; gap: 14px; margin-top: 18px; }
+.result { padding: 14px; display: grid; gap: 12px; grid-template-columns: 1fr 1fr 1.2fr; align-items: start; }
+.result figure { margin: 0; }
+.result figcaption { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.result img { max-width: 100%; max-height: 260px; border-radius: 8px; background: repeating-conic-gradient(var(--code) 0 25%, transparent 0 50%) 0 0/16px 16px; display: block; }
+.stats { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; margin: 8px 0; }
+.stats dt { color: var(--muted); }
+.stats dd { margin: 0; font-variant-numeric: tabular-nums; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.name { font-weight: 600; word-break: break-all; }
+.muted { color: var(--muted); font-size: 13px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.card { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.card .thumb { height: 170px; display: grid; place-items: center; background: var(--code); border-radius: 8px; overflow: hidden; }
+.card .thumb img { max-width: 100%; max-height: 170px; }
+.card .thumb .x { color: var(--muted); font-size: 13px; padding: 10px; text-align: center; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row.space { justify-content: space-between; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.logs { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border: 1px solid var(--line); border-radius: 10px; height: 62vh; overflow: auto; padding: 8px 0; }
+.logs .l { display: grid; grid-template-columns: 86px 74px 56px 1fr; gap: 10px; padding: 2px 12px; border-left: 3px solid transparent; }
+.logs .l:hover { background: var(--panel); }
+.logs .l.ERROR { border-left-color: var(--err); }
+.logs .l.WARN { border-left-color: var(--warn); }
+.logs .l .t, .logs .l .s { color: var(--muted); }
+.logs .l .m { white-space: pre-wrap; word-break: break-word; }
+.logs .l .ev { font-weight: 700; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; font-size: 13px; }
+.tablewrap { overflow-x: auto; }
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.empty { color: var(--muted); padding: 30px; text-align: center; }
+dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--panel); color: var(--ink); max-width: 420px; width: calc(100% - 32px); padding: 22px; }
+dialog::backdrop { background: rgba(0,0,0,.45); }
+dialog label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+dialog input { width: 100%; }
+.toast { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: calc(100% - 32px); }
+.toast.show { opacity: 1; }
+@media (max-width: 760px) {
+  .result { grid-template-columns: 1fr 1fr; }
+  .result .info { grid-column: 1 / -1; }
+  .cols { grid-template-columns: 1fr; }
+  .logs .l { grid-template-columns: 70px 1fr; }
+  .logs .l .s, .logs .l .lv { display: none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><b>SmartThumb SA</b><span>product photo → thumbnail + AI labels</span></div>
+      <div class="who">
+        <span id="labelsState" class="pill">labels: …</span>
+        <span>tester: <b id="whoName">—</b></span>
+        <button class="btn small" id="settingsBtn">Settings</button>
+        <a id="dashLink" class="btn small" target="_blank" rel="noopener" hidden>CloudWatch dashboard ↗</a>
+      </div>
+    </div>
+    <nav role="tablist">
+      <button role="tab" data-tab="upload" aria-selected="true">Upload</button>
+      <button role="tab" data-tab="gallery">Gallery</button>
+      <button role="tab" data-tab="logs">Logs</button>
+      <button role="tab" data-tab="tests">Test suite</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section id="tab-upload">
+    <h2>Upload product photos</h2>
+    <p class="sub">JPG or PNG, up to 10 MB. Each upload goes straight to the private S3 source bucket. The S3 event triggers the processor Lambda, and the result appears here.</p>
+    <label class="drop" id="drop">
+      <b>Drop photos here or click to choose</b>
+      <small>You can select several files at once</small>
+      <input type="file" id="fileInput" multiple hidden>
+    </label>
+    <div class="results" id="uploadResults"></div>
+  </section>
+
+  <section id="tab-gallery" hidden>
+    <div class="row space" style="margin-bottom:12px">
+      <div><h2>Recent results from the whole team</h2><p class="sub" id="galleryStats" style="margin:0">—</p></div>
+      <div class="row">
+        <select id="galleryFilter"><option value="">All</option><option value="ok">OK</option><option value="rejected">Rejected</option><option value="error">Error</option><option value="mine">Mine</option></select>
+        <button class="btn" id="galleryRefresh">Refresh</button>
+      </div>
+    </div>
+    <div class="grid" id="gallery"></div>
+  </section>
+
+  <section id="tab-logs" hidden>
+    <h2>Live logs</h2>
+    <p class="sub">CloudWatch Logs from the processor and api Lambdas. Refreshes every 3 seconds while this tab is open.</p>
+    <div class="toolbar">
+      <input id="logFilter" placeholder="filter text, e.g. a key or request id" style="flex:1;min-width:200px">
+      <select id="logSource"><option value="all">All functions</option><option value="processor">processor</option><option value="api">api</option></select>
+      <select id="logLevel"><option value="">All levels</option><option value="WARN">WARN+</option><option value="ERROR">ERROR</option></select>
+      <label class="muted"><input type="checkbox" id="logPlatform"> show START/END</label>
+      <button class="btn" id="logPause">Pause</button>
+      <button class="btn" id="logClear">Clear</button>
+    </div>
+    <div class="logs" id="logBox"><div class="empty">Waiting for log events…</div></div>
+  </section>
+
+  <section id="tab-tests" hidden>
+    <div class="row space">
+      <div>
+        <h2>Acceptance test suite</h2>
+        <p class="sub">Generates sample files in your browser, uploads them through the real pipeline, and checks FR1–FR7 from the proposal.</p>
+      </div>
+      <div class="row">
+        <label class="btn" title="Optional: include a real product photo so the AI label check is meaningful">+ real photo <input type="file" id="realPhoto" accept="image/jpeg,image/png" hidden></label>
+        <button class="btn primary" id="runTests">Run all checks</button>
+      </div>
+    </div>
+    <p class="muted" id="realPhotoName"></p>
+    <div class="cols">
+      <div class="panel tablewrap"><table><thead><tr><th>Requirement</th><th>Result</th><th>Evidence</th></tr></thead><tbody id="frTable"></tbody></table></div>
+      <div class="panel tablewrap"><table><thead><tr><th>Case</th><th>Expect</th><th>Got</th><th>Time</th></tr></thead><tbody id="caseTable"></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="settings">
+  <form method="dialog" id="settingsForm">
+    <h2>Join the test session</h2>
+    <p class="sub">Your team lead has the team code. Your name is attached to every upload so we can tell whose tests are whose.</p>
+    <label for="nameInput">Your name</label>
+    <input id="nameInput" required maxlength="40" placeholder="e.g. Thandi">
+    <label for="codeInput">Team code</label>
+    <input id="codeInput" required type="password" autocomplete="off">
+    <p class="muted" id="settingsError"></p>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn primary" value="save">Save</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem("st." + k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem("st." + k, v); } catch {} },
+};
+let state = { name: store.get("name"), code: store.get("code"), config: null };
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const kb = (n) => (n == null ? "—" : n > 1048576 ? (n / 1048576).toFixed(2) + " MB" : (n / 1024).toFixed(1) + " KB");
+const fileOf = (key) => key.split("/").pop();
+const idOf = (key) => key.split("/")[1] || key;
+
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove("show"), 2600); }
+
+async function api(method, path, body) {
+  const res = await fetch(path, {
+    method,
+    headers: { "content-type": "application/json", "x-team-code": state.code },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (res.status === 401) { openSettings("That team code was not accepted."); throw new Error("unauthorised"); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok && res.status !== 404) throw new Error(data.error || res.statusText);
+  return { status: res.status, data };
+}
+
+// ---------- settings ----------
+function openSettings(err = "") {
+  $("#nameInput").value = state.name; $("#codeInput").value = state.code; $("#settingsError").textContent = err;
+  if (!$("#settings").open) $("#settings").showModal();
+}
+$("#settingsBtn").onclick = () => openSettings();
+$("#settingsForm").addEventListener("submit", async () => {
+  state.name = $("#nameInput").value.trim(); state.code = $("#codeInput").value.trim();
+  store.set("name", state.name); store.set("code", state.code);
+  await boot();
+});
+async function boot() {
+  $("#whoName").textContent = state.name || "—";
+  if (!state.name || !state.code) return openSettings();
+  try {
+    const { data } = await api("GET", "/api/config");
+    state.config = data;
+    $("#labelsState").textContent = data.labels_enabled ? "AI labels: on" : "AI labels: off";
+    $("#labelsState").className = "pill " + (data.labels_enabled ? "ok" : "");
+    if (data.dashboard_url) { $("#dashLink").href = data.dashboard_url; $("#dashLink").hidden = false; }
+  } catch (e) { if (e.message !== "unauthorised") toast("Could not load config: " + e.message); }
+}
+
+// ---------- tabs ----------
+let activeTab = "upload";
+document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => showTab(b.dataset.tab)));
+function showTab(name) {
+  activeTab = name;
+  document.querySelectorAll("nav button").forEach((b) => b.setAttribute("aria-selected", b.dataset.tab === name));
+  document.querySelectorAll("main section").forEach((s) => (s.hidden = s.id !== "tab-" + name));
+  if (name === "gallery") loadGallery();
+  if (name === "logs") pollLogs(true);
+}
+
+// ---------- upload pipeline ----------
+async function uploadFile(file) {
+  const { data } = await api("POST", "/api/uploads", { filename: file.name, content_type: file.type || "application/octet-stream", tester: state.name });
+  const form = new FormData();
+  Object.entries(data.fields).forEach(([k, v]) => form.append(k, v));
+  form.append("file", file);
+  const res = await fetch(data.url, { method: "POST", body: form });
+  if (!res.ok) {
+    const text = await res.text();
+    const code = (text.match(/<Code>(.*?)<\/Code>/) || [])[1] || res.status;
+    throw new Error("S3 refused the upload: " + code);
+  }
+  return data.key;
+}
+async function waitResult(key, timeoutMs = 30000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    const { status, data } = await api("GET", "/api/results?key=" + encodeURIComponent(key));
+    if (status === 200) return { meta: data, waitedMs: Date.now() - start };
+    await sleep(1000);
+  }
+  throw new Error("no result after " + timeoutMs / 1000 + "s; check the Logs tab");
+}
+
+function labelsHtml(m) {
+  if (m.labels_status === "disabled") return '<span class="muted">AI labels are off</span>';
+  if (m.labels_status === "error") return '<span class="pill error">labels failed</span> <span class="muted">' + esc(m.labels_error) + "</span>";
+  if (!m.labels || !m.labels.length) return '<span class="muted">no labels above the confidence threshold</span>';
+  return '<div class="chips">' + m.labels.map((l) => `<span class="chip" title="${esc(l.categories.join(", "))}">${esc(l.name)} ${Math.round(l.confidence)}%</span>`).join("") + "</div>";
+}
+function votesHtml(m) {
+  if (m.status !== "ok" || !m.labels || !m.labels.length) return "";
+  const v = Object.values(m.votes || {}); const up = v.filter(Boolean).length;
+  const mine = (m.votes || {})[state.name];
+  return `<div class="row" style="margin-top:6px"><span class="muted">Labels useful?</span>
+    <button class="btn small" data-vote="1" data-key="${esc(m.key)}" ${mine === true ? 'style="border-color:var(--ok)"' : ""}>👍</button>
+    <button class="btn small" data-vote="0" data-key="${esc(m.key)}" ${mine === false ? 'style="border-color:var(--err)"' : ""}>👎</button>
+    <span class="muted">${up}/${v.length}</span></div>`;
+}
+function statsHtml(m) {
+  const rows = [["status", `<span class="pill ${esc(m.status)}">${esc(m.status)}</span>`]];
+  if (m.status === "ok") rows.push(
+    ["original", `${m.orig_width}×${m.orig_height} · ${kb(m.orig_bytes)}`],
+    ["thumbnail", `${m.thumb_width}×${m.thumb_height} · ${kb(m.thumb_bytes)} (${esc(m.thumb_format)})`],
+    ["size reduction", `<b>${m.reduction_pct}%</b>`],
+  );
+  else rows.push(["reason", esc(m.reason)]);
+  rows.push(["processing", `${m.duration_ms} ms${m.labels_ms != null ? ` (labels ${m.labels_ms} ms)` : ""}`], ["tester", esc(m.tester)], ["request id", `<code>${esc((m.request_id || "").slice(0, 8))}</code>`]);
+  return '<dl class="stats">' + rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + "</dl>";
+}
+function resultCard(m, waitedMs) {
+  return `<figure>${m.original_url ? `<img src="${esc(m.original_url)}" alt="original">` : ""}<figcaption>Original (source bucket)</figcaption></figure>
+    <figure>${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="thumbnail">` : '<div class="muted">no thumbnail</div>'}<figcaption>Thumbnail (output bucket)</figcaption></figure>
+    <div class="info"><div class="name">${esc(fileOf(m.key))}</div>${statsHtml(m)}
+      ${waitedMs != null ? `<div class="muted">visible in UI ${(waitedMs / 1000).toFixed(1)} s after upload</div>` : ""}
+      <div style="margin-top:8px">${labelsHtml(m)}</div>${votesHtml(m)}
+      <div class="row" style="margin-top:8px"><button class="btn small" data-logs="${esc(idOf(m.key))}">View logs</button></div></div>`;
+}
+
+async function handleFiles(files) {
+  for (const file of files) {
+    const el = document.createElement("div");
+    el.className = "panel result";
+    el.innerHTML = `<div class="info" style="grid-column:1/-1"><span class="name">${esc(file.name)}</span> <span class="pill pending">uploading…</span></div>`;
+    $("#uploadResults").prepend(el);
+    (async () => {
+      try {
+        const key = await uploadFile(file);
+        el.querySelector(".pill").textContent = "processing…";
+        const { meta, waitedMs } = await waitResult(key);
+        el.innerHTML = resultCard(meta, waitedMs);
+      } catch (e) {
+        el.innerHTML = `<div class="info" style="grid-column:1/-1"><span class="name">${esc(file.name)}</span> <span class="pill error">failed</span> <span class="muted">${esc(e.message)}</span></div>`;
+      }
+    })();
+  }
+}
+const drop = $("#drop");
+["dragenter", "dragover"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((e) => drop.addEventListener(e, (ev) => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (ev) => handleFiles([...ev.dataTransfer.files]));
+$("#fileInput").onchange = (ev) => { handleFiles([...ev.target.files]); ev.target.value = ""; };
+
+// shared click handlers: votes + "view logs"
+document.addEventListener("click", async (ev) => {
+  const vote = ev.target.closest("[data-vote]");
+  if (vote) {
+    try { await api("POST", "/api/votes", { key: vote.dataset.key, useful: vote.dataset.vote === "1", tester: state.name }); toast("Vote saved"); if (activeTab === "gallery") loadGallery(); }
+    catch (e) { toast("Vote failed: " + e.message); }
+  }
+  const lg = ev.target.closest("[data-logs]");
+  if (lg) { $("#logFilter").value = lg.dataset.logs; resetLogs(); showTab("logs"); }
+});
+
+// ---------- gallery ----------
+async function loadGallery() {
+  const box = $("#gallery");
+  if (!box.children.length) box.innerHTML = '<div class="empty">Loading…</div>';
+  try {
+    const { data } = await api("GET", "/api/results?limit=60");
+    const f = $("#galleryFilter").value;
+    const items = data.items.filter((m) => !f || (f === "mine" ? m.tester === state.name : m.status === f));
+    const ok = data.items.filter((m) => m.status === "ok");
+    const avg = ok.length ? ok.reduce((s, m) => s + m.reduction_pct, 0) / ok.length : 0;
+    const votes = data.items.flatMap((m) => Object.values(m.votes || {}));
+    $("#galleryStats").textContent = `${data.total} processed in total · showing ${items.length} · ${ok.length}/${data.items.length} ok · avg reduction ${avg.toFixed(1)}% · labels rated useful ${votes.filter(Boolean).length}/${votes.length}`;
+    box.innerHTML = items.length ? items.map((m) => `<div class="panel card">
+      <div class="thumb">${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="">` : `<div class="x">${esc(m.reason || m.status)}</div>`}</div>
+      <div class="row space"><span class="name" style="font-size:13px">${esc(fileOf(m.key))}</span><span class="pill ${esc(m.status)}">${esc(m.status)}</span></div>
+      <div class="muted">${esc(m.tester)} · ${esc((m.processed_at || "").replace("T", " ").replace("Z", ""))}</div>
+      ${m.status === "ok" ? `<div class="muted">${m.thumb_width}×${m.thumb_height} · −${m.reduction_pct}% · ${m.duration_ms} ms</div>` : ""}
+      ${m.status === "ok" ? labelsHtml(m) : ""}${votesHtml(m)}
+      <div class="row"><button class="btn small" data-logs="${esc(idOf(m.key))}">Logs</button>${m.original_url ? `<a class="btn small" href="${esc(m.original_url)}" target="_blank" rel="noopener">Original ↗</a>` : ""}</div>
+    </div>`).join("") : '<div class="empty">Nothing yet. Upload something!</div>';
+  } catch (e) { if (e.message !== "unauthorised") box.innerHTML = `<div class="empty">Could not load: ${esc(e.message)}</div>`; }
+}
+$("#galleryRefresh").onclick = loadGallery;
+$("#galleryFilter").onchange = loadGallery;
+
+// ---------- logs ----------
+let logSince = 0, logPaused = false, logTimer = null; const seen = new Set();
+function resetLogs() { logSince = 0; seen.clear(); $("#logBox").innerHTML = '<div class="empty">Waiting for log events…</div>'; }
+const PLATFORM = /^(START|END|INIT_START|EXTENSION|TELEMETRY)\b/;
+function renderLog(e) {
+  const lvl = e.level || "INFO";
+  const t = new Date(e.ts).toLocaleTimeString();
+  let body;
+  if (e.event === "raw" || e.event === "lambda_report") body = esc(e.message);
+  else {
+    const { level, event, source, ts, id, ...rest } = e;
+    const kv = Object.entries(rest).filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && !v.length))
+      .map(([k, v]) => `${k}=${esc(typeof v === "object" ? JSON.stringify(v) : v)}`).join("  ");
+    body = `<span class="ev">${esc(event)}</span>  ${kv}`;
+  }
+  return `<div class="l ${esc(lvl)}"><span class="t">${t}</span><span class="s">${esc(e.source)}</span><span class="lv"><span class="pill ${esc(lvl)}">${esc(lvl)}</span></span><span class="m">${body}</span></div>`;
+}
+async function pollLogs(immediate) {
+  clearTimeout(logTimer);
+  if (activeTab !== "logs") return;
+  if (!logPaused && state.code) {
+    try {
+      const filter = $("#logFilter").value.trim();
+      const since = logSince || Date.now() - (filter ? 24 * 3600e3 : 15 * 60e3);
+      const q = new URLSearchParams({ since, source: $("#logSource").value, filter });
+      const { data } = await api("GET", "/api/logs?" + q);
+      const lvl = $("#logLevel").value, platform = $("#logPlatform").checked;
+      const fresh = data.events.filter((e) => !seen.has(e.id));
+      fresh.forEach((e) => seen.add(e.id));
+      const shown = fresh.filter((e) => (platform || !PLATFORM.test(e.message || "")) && (!lvl || e.level === "ERROR" || (lvl === "WARN" && e.level === "WARN")));
+      if (data.events.length) logSince = Math.max(logSince, data.events[data.events.length - 1].ts);
+      const box = $("#logBox");
+      if (shown.length) {
+        const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 30;
+        if (box.querySelector(".empty")) box.innerHTML = "";
+        box.insertAdjacentHTML("beforeend", shown.map(renderLog).join(""));
+        if (atBottom) box.scrollTop = box.scrollHeight;
+      }
+    } catch (e) { if (e.message !== "unauthorised") toast("Logs: " + e.message); }
+  }
+  logTimer = setTimeout(pollLogs, 3000);
+}
+["#logFilter", "#logSource", "#logLevel", "#logPlatform"].forEach((s) => $(s).addEventListener("change", () => { resetLogs(); pollLogs(); }));
+$("#logPause").onclick = () => { logPaused = !logPaused; $("#logPause").textContent = logPaused ? "Resume" : "Pause"; if (!logPaused) pollLogs(); };
+$("#logClear").onclick = () => { $("#logBox").innerHTML = ""; };
+
+// ---------- test suite ----------
+function canvasFile(name, w, h, type, { alpha = false, seed = 1 } = {}) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  if (!alpha) {
+    const grad = g.createLinearGradient(0, 0, w, h);
+    grad.addColorStop(0, "#f3e9dc"); grad.addColorStop(1, "#c9b79c");
+    g.fillStyle = grad; g.fillRect(0, 0, w, h);
+    // light noise so the JPEG has realistic photo-like weight
+    const img = g.getImageData(0, 0, w, h); let s = seed;
+    for (let i = 0; i < img.data.length; i += 4) { s = (s * 16807) % 2147483647; const n = (s % 24) - 12; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
+    g.putImageData(img, 0, 0);
+  }
+  // a simple "handbag": body + handle
+  const u = Math.min(w, h);
+  g.fillStyle = "#7a2e1d"; g.beginPath(); g.roundRect(w / 2 - u * .3, h / 2 - u * .12, u * .6, u * .4, u * .05); g.fill();
+  g.strokeStyle = "#4b1c11"; g.lineWidth = u * .04; g.beginPath(); g.arc(w / 2, h / 2 - u * .12, u * .17, Math.PI, 0); g.stroke();
+  return new Promise((r) => c.toBlob((b) => r(new File([b], name, { type })), type, 0.95));
+}
+async function buildCases() {
+  const corrupt = new Uint8Array(4096); corrupt.set([0xff, 0xd8, 0xff, 0xe0]); for (let i = 4; i < corrupt.length; i++) corrupt[i] = (i * 31) % 251;
+  const cases = [
+    { name: "product-landscape.jpg", file: await canvasFile("product-landscape.jpg", 2400, 1600, "image/jpeg"), expect: "ok", dims: [300, 200] },
+    { name: "product-portrait.jpg", file: await canvasFile("product-portrait.jpg", 1200, 1800, "image/jpeg", { seed: 7 }), expect: "ok", dims: [200, 300] },
+    { name: "panorama.jpg", file: await canvasFile("panorama.jpg", 4000, 600, "image/jpeg", { seed: 3 }), expect: "ok", dims: [300, 45] },
+    { name: "logo-transparent.png", file: await canvasFile("logo-transparent.png", 1000, 1000, "image/png", { alpha: true }), expect: "ok", dims: [300, 300] },
+    { name: "tiny.png", file: await canvasFile("tiny.png", 120, 80, "image/png", { seed: 5 }), expect: "ok", dims: [120, 80] },
+    { name: "fake-photo.jpg", file: new File(["this is a text file pretending to be a JPEG"], "fake-photo.jpg", { type: "image/jpeg" }), expect: "rejected" },
+    { name: "corrupt.jpg", file: new File([corrupt], "corrupt.jpg", { type: "image/jpeg" }), expect: "rejected" },
+    { name: "notes.txt", file: new File(["price list"], "notes.txt", { type: "text/plain" }), expect: "rejected" },
+  ];
+  const real = $("#realPhoto").files[0];
+  if (real) cases.unshift({ name: real.name + " (real)", file: real, expect: "ok", real: true });
+  return cases;
+}
+$("#realPhoto").onchange = () => { const f = $("#realPhoto").files[0]; $("#realPhotoName").textContent = f ? `Including real photo: ${f.name}` : ""; };
+
+const FR = [
+  ["FR1", "Accept image uploads"], ["FR2", "Trigger automatically"], ["FR3", "Thumbnail ≤300px, aspect kept"], ["FR4", "Stored in output bucket"],
+  ["FR5", "AI labels (extension)"], ["FR6", "Execution logged"], ["FR7", "Invalid files handled"],
+];
+function renderFR(results) {
+  $("#frTable").innerHTML = FR.map(([id, label]) => {
+    const r = results[id] || { state: "pending", note: "—" };
+    return `<tr><td><b>${id}</b> ${label}</td><td><span class="pill ${r.state}">${r.state}</span></td><td class="muted">${esc(r.note)}</td></tr>`;
+  }).join("");
+}
+function loadImg(url) { return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("thumbnail did not load")); i.src = url; }); }
+
+$("#runTests").onclick = async () => {
+  if (!state.code) return openSettings();
+  const btn = $("#runTests"); btn.disabled = true; btn.textContent = "Running…";
+  const cases = await buildCases();
+  const rows = cases.map((c) => ({ ...c, got: "uploading…", time: "" }));
+  const renderCases = () => ($("#caseTable").innerHTML = rows.map((r) => `<tr><td>${esc(r.name)}<div class="muted">${kb(r.file.size)}</div></td><td>${r.expect}${r.dims ? `<div class="muted">${r.dims.join("×")}</div>` : ""}</td><td>${r.gotHtml || esc(r.got)}</td><td class="muted">${r.time}</td></tr>`).join(""));
+  renderFR({}); renderCases();
+
+  await Promise.all(rows.map(async (r) => {
+    const t0 = performance.now();
+    try {
+      r.key = await uploadFile(r.file); r.uploaded = true; r.got = "processing…"; renderCases();
+      const { meta } = await waitResult(r.key, 45000);
+      r.meta = meta; r.time = ((performance.now() - t0) / 1000).toFixed(1) + " s";
+      if (meta.status === "ok") {
+        const img = await loadImg(meta.thumb_url);
+        r.loaded = [img.naturalWidth, img.naturalHeight];
+      }
+      r.pass = meta.status === r.expect && (!r.dims || (r.loaded && r.loaded[0] === r.dims[0] && Math.abs(r.loaded[1] - r.dims[1]) <= 1));
+      if (r.real) r.pass = meta.status === "ok" && Math.max(...r.loaded) <= 300;
+      r.gotHtml = `<span class="pill ${r.pass ? "pass" : "fail"}">${esc(meta.status)}</span> ${r.loaded ? r.loaded.join("×") : `<span class="muted">${esc(meta.reason || "")}</span>`}`;
+    } catch (e) { r.pass = false; r.gotHtml = `<span class="pill fail">error</span> <span class="muted">${esc(e.message)}</span>`; }
+    renderCases();
+  }));
+
+  // FR6: confirm each processed key shows up in CloudWatch (logs can lag a few seconds)
+  const keys = rows.filter((r) => r.meta).map((r) => r);
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const { data } = await api("GET", "/api/logs?" + new URLSearchParams({ since: Date.now() - 10 * 60e3, source: "processor", filter: "processed" }));
+    keys.forEach((r) => { r.logged = data.events.some((e) => e.event === "processed" && e.key === r.key); });
+    if (keys.every((r) => r.logged)) break;
+    await sleep(3000);
+  }
+
+  const ok = rows.filter((r) => r.expect === "ok"), bad = rows.filter((r) => r.expect === "rejected");
+  const all = (arr, f) => arr.length && arr.every(f);
+  const labelsOn = state.config && state.config.labels_enabled;
+  const labelled = ok.filter((r) => r.meta && r.meta.labels_status === "ok");
+  const realRow = rows.find((r) => r.real);
+  const avgRed = ok.filter((r) => r.meta && r.meta.status === "ok").map((r) => r.meta.reduction_pct);
+  const results = {
+    FR1: { state: all(rows, (r) => r.uploaded) ? "pass" : "fail", note: `${rows.filter((r) => r.uploaded).length}/${rows.length} accepted by S3` },
+    FR2: { state: all(rows, (r) => r.meta) ? "pass" : "fail", note: `${rows.filter((r) => r.meta).length}/${rows.length} processed with no manual step` },
+    FR3: { state: all(ok, (r) => r.pass) ? "pass" : "fail", note: `${ok.filter((r) => r.pass).length}/${ok.length} correct size (checked in browser); avg reduction ${avgRed.length ? (avgRed.reduce((a, b) => a + b, 0) / avgRed.length).toFixed(1) : "—"}%` },
+    FR4: { state: all(ok, (r) => r.loaded) ? "pass" : "fail", note: `${ok.filter((r) => r.loaded).length}/${ok.length} thumbnails downloaded from output bucket` },
+    FR5: !labelsOn ? { state: "pending", note: "AI labels are switched off (enable_labels = false)" }
+      : { state: labelled.length === ok.length && (!realRow || (realRow.meta && realRow.meta.labels.length)) ? "pass" : "fail",
+          note: `${labelled.length}/${ok.length} Rekognition calls ok` + (realRow && realRow.meta ? `; real photo: ${realRow.meta.labels.map((l) => l.name).slice(0, 4).join(", ") || "no labels"}` : "; add a real photo for a meaningful check") },
+    FR6: { state: all(keys, (r) => r.logged) ? "pass" : "fail", note: `${keys.filter((r) => r.logged).length}/${keys.length} found in CloudWatch Logs` },
+    FR7: { state: all(bad, (r) => r.pass) ? "pass" : "fail", note: bad.map((r) => `${r.name}: ${r.meta ? r.meta.status : "?"}`).join("; ") },
+  };
+  renderFR(results);
+  btn.disabled = false; btn.textContent = "Run again";
+  const passed = Object.values(results).filter((r) => r.state === "pass").length;
+  toast(`${passed}/7 requirements passed`);
+};
+renderFR({});
+
+boot();
+</script>
+</body>
+</html>
