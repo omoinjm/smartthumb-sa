@@ -430,7 +430,7 @@ function labelsHtml(m) {
   if (m.labels_status === "disabled") return '<span class="muted">AI labels are off</span>';
   if (m.labels_status === "error") return '<span class="pill error">labels failed</span> <span class="muted">' + esc(m.labels_error) + "</span>";
   if (!m.labels || !m.labels.length) return '<span class="muted">no labels above the confidence threshold</span>';
-  return '<div class="chips">' + m.labels.map((l) => `<span class="chip" title="${esc(l.categories.join(", "))}">${esc(l.name)} ${Math.round(l.confidence)}%</span>`).join("") + "</div>";
+  return '<div class="chips">' + m.labels.map((l) => `<span class="chip" title="${esc((l.categories || []).join(", "))}">${esc(l.name)} ${Math.round(l.confidence)}%</span>`).join("") + "</div>";
 }
 function votesHtml(m) {
   if (m.status !== "ok" || !m.labels || !m.labels.length) return "";
