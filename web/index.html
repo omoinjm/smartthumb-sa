@@ -6,33 +6,37 @@
 <title>SmartThumb SA</title>
 <style>
 :root {
-  --bg: #f6f7f9; --panel: #ffffff; --ink: #14171c; --muted: #5d6673; --line: #e2e5ea;
-  --accent: #0b7a5c; --accent-ink: #ffffff; --accent-soft: #e3f3ee;
-  --ok: #157f3b; --ok-soft: #e4f4ea; --warn: #9a5b00; --warn-soft: #fbf0dc; --err: #b3261e; --err-soft: #fbe5e3;
-  --code: #f0f2f5; --shadow: 0 1px 2px rgba(0,0,0,.05), 0 2px 8px rgba(0,0,0,.04);
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0f1216; --panel: #171b21; --ink: #e8ebef; --muted: #9aa3ae; --line: #2a3038;
-    --accent: #3cc49a; --accent-ink: #06261c; --accent-soft: #15302a;
-    --ok: #5fd08a; --ok-soft: #15301f; --warn: #f0b44c; --warn-soft: #33270f; --err: #ff8a80; --err-soft: #3a1714;
-    --code: #11151a; --shadow: none;
-  }
+  color-scheme: dark;
+  --bg: #0a1020; --panel: #0f172a; --panel-2: #131c31; --ink: #e8eef8; --muted: #8e9ab0; --line: #222d42; --line-strong: #3a4660;
+  --accent: #3b82f6; --accent-ink: #ffffff; --accent-soft: #14233f;
+  --ok: #4ade80; --ok-soft: #0f2a1d; --warn: #f5b84c; --warn-soft: #2e230e; --err: #f87171; --err-soft: #34161a;
+  --code: #0c1324; --shadow: none;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-header { background: var(--panel); border-bottom: 1px solid var(--line); }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; }
-.top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 14px 0 10px; }
-.brand { display: flex; gap: 10px; align-items: center; }
-.brand b { font-size: 18px; letter-spacing: -.01em; }
-.brand span { color: var(--muted); font-size: 13px; }
-.who { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); }
-nav { display: flex; gap: 4px; overflow-x: auto; }
-nav button { border: 0; background: none; color: var(--muted); padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; }
-nav button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+body { margin: 0; min-height: 100vh; background: radial-gradient(1200px 600px at 50% -10%, #111b33 0%, var(--bg) 60%) fixed, var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+header { background: rgba(10, 16, 32, .85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 18px 0 14px; }
+.brand { display: flex; flex-direction: column; gap: 2px; }
+.brand b { font-size: 26px; font-weight: 800; letter-spacing: -.02em; line-height: 1.1; }
+.brand span { color: var(--muted); font-size: 14px; }
+.who { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; font-size: 14px; color: var(--muted); }
+.who .name-tag { color: var(--ink); opacity: .85; }
+.status { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; background: var(--panel-2); color: var(--muted); }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.ok { background: var(--ok-soft); color: var(--ok); }
+.btn.icon { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; font-weight: 500; background: transparent; border-color: var(--line-strong); }
+.btn.icon:hover { background: var(--panel-2); }
+.divider { width: 1px; height: 26px; background: var(--line-strong); }
+.extlink { display: inline-flex; align-items: center; gap: 7px; color: var(--ink); opacity: .85; text-decoration: none; font-weight: 500; }
+.extlink:hover { opacity: 1; text-decoration: underline; }
+svg.i { width: 18px; height: 18px; flex: none; }
+nav { display: flex; gap: 8px; overflow-x: auto; }
+nav button { border: 0; background: none; color: var(--muted); padding: 10px 16px 12px; font: inherit; font-size: 16px; font-weight: 500; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+nav button:hover { color: var(--ink); }
+nav button[aria-selected="true"] { color: var(--ink); font-weight: 700; border-bottom-color: var(--accent); }
 main { padding: 20px 0 60px; }
-section[hidden] { display: none; }
+[hidden] { display: none !important; }
 h2 { font-size: 17px; margin: 0 0 4px; }
 p.sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
 input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); min-width: 0; }
@@ -46,10 +50,14 @@ input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--line);
 .pill.error, .pill.ERROR, .pill.fail { background: var(--err-soft); color: var(--err); }
 .pill.pass { background: var(--ok-soft); color: var(--ok); }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
-.drop { border: 2px dashed var(--line); border-radius: 12px; padding: 36px 16px; text-align: center; background: var(--panel); cursor: pointer; transition: border-color .15s, background .15s; }
+.drop { display: block; max-width: 830px; margin: 48px auto 0; border: 2px dashed var(--line-strong); border-radius: 14px; padding: 64px 20px; text-align: center; background: linear-gradient(180deg, rgba(19, 28, 49, .7), rgba(15, 23, 42, .5)); cursor: pointer; transition: border-color .15s, background .15s; }
+.drop:hover, .drop:focus-within { border-color: var(--muted); }
 .drop.over { border-color: var(--accent); background: var(--accent-soft); }
-.drop b { display: block; font-size: 16px; margin-bottom: 4px; }
-.drop small { color: var(--muted); }
+.drop svg { width: 120px; height: 100px; color: #b9c2d3; margin-bottom: 18px; }
+.drop b { display: block; font-size: 30px; font-weight: 700; letter-spacing: -.01em; margin-bottom: 10px; }
+.drop small { color: var(--muted); font-size: 16px; }
+.intro { max-width: 830px; margin: 0 auto; text-align: center; }
+@media (max-width: 600px) { .drop { padding: 40px 16px; margin-top: 24px; } .drop b { font-size: 22px; } .drop svg { width: 84px; height: 70px; } .brand b { font-size: 22px; } .divider { display: none; } }
 .results { display: grid; gap: 14px; margin-top: 18px; }
 .result { padding: 14px; display: grid; gap: 12px; grid-template-columns: 1fr 1fr 1.2fr; align-items: start; }
 .result figure { margin: 0; }
@@ -105,10 +113,17 @@ dialog input { width: 100%; }
     <div class="top">
       <div class="brand"><b>SmartThumb SA</b><span>product photo → thumbnail + AI labels</span></div>
       <div class="who">
-        <span id="labelsState" class="pill">labels: …</span>
-        <span>tester: <b id="whoName">—</b></span>
-        <button class="btn small" id="settingsBtn">Settings</button>
-        <a id="dashLink" class="btn small" target="_blank" rel="noopener" hidden>CloudWatch dashboard ↗</a>
+        <span id="labelsState" class="status">AI labels: …</span>
+        <span class="name-tag" id="whoName" title="Tester name">—</span>
+        <button class="btn icon" id="settingsBtn">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+        <span class="divider" id="dashDivider" hidden></span>
+        <a id="dashLink" class="extlink" target="_blank" rel="noopener" hidden>
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>
+          CloudWatch
+        </a>
       </div>
     </div>
     <nav role="tablist">
@@ -122,11 +137,13 @@ dialog input { width: 100%; }
 
 <main class="wrap">
   <section id="tab-upload">
-    <h2>Upload product photos</h2>
-    <p class="sub">JPG or PNG, up to 10 MB. Each upload goes straight to the private S3 source bucket. The S3 event triggers the processor Lambda, and the result appears here.</p>
-    <label class="drop" id="drop">
-      <b>Drop photos here or click to choose</b>
-      <small>You can select several files at once</small>
+    <label class="drop" id="drop" title="Uploads go straight to the private S3 source bucket; the S3 event triggers the processor Lambda">
+      <svg viewBox="0 0 120 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M38 78H30a22 22 0 0 1-2-43.9A30 30 0 0 1 86 30a20 20 0 0 1 4 48h-8"/>
+        <path d="M60 92V50"/><path d="M45 64l15-15 15 15"/>
+      </svg>
+      <b>Drop product photos here</b>
+      <small>JPG or PNG &bull; up to 10 MB &bull; multiple files allowed</small>
       <input type="file" id="fileInput" multiple hidden>
     </label>
     <div class="results" id="uploadResults"></div>
@@ -235,8 +252,8 @@ async function boot() {
     const { data } = await api("GET", "/api/config");
     state.config = data;
     $("#labelsState").textContent = data.labels_enabled ? "AI labels: on" : "AI labels: off";
-    $("#labelsState").className = "pill " + (data.labels_enabled ? "ok" : "");
-    if (data.dashboard_url) { $("#dashLink").href = data.dashboard_url; $("#dashLink").hidden = false; }
+    $("#labelsState").className = "status " + (data.labels_enabled ? "ok" : "");
+    if (data.dashboard_url) { $("#dashLink").href = data.dashboard_url; $("#dashLink").hidden = false; $("#dashDivider").hidden = false; }
   } catch (e) { if (e.message !== "unauthorised") toast("Could not load config: " + e.message); }
 }
 
