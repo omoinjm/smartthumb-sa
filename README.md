@@ -16,16 +16,26 @@ browse everyone's results, watch live logs and run the FR1–FR7 acceptance suit
 
 ```mermaid
 flowchart LR
-  U[Tester's browser<br/>web app] -- "page, /api/*, /thumbs/*" --> CF[CloudFront<br/>SA edge · cache]
-  CF -- "page + /api/*" --> API[API Gateway HTTP API<br/>+ api Lambda]
-  CF -- "/thumbs/* (cached 1 year)" --> OUT
-  API -- presigned POST --> U
-  U -- "upload (≤10 MB)" --> SRC[(S3 source bucket<br/>private · uploads/)]
-  SRC -- "ObjectCreated" --> P[processor Lambda<br/>Python 3.12 + Pillow]
-  P -- DetectLabels --> R[Amazon Rekognition<br/>optional]
-  P -- "thumbs/ + meta/*.json" --> OUT[(S3 output bucket<br/>private)]
-  API -- "meta/*.json (cached in memory)" --> OUT
-  P & API --> CW[CloudWatch Logs<br/>+ dashboard + alarm]
+  U["Seller or tester browser<br/>(RekogNail web app)"]
+  CF["Amazon CloudFront<br/>SA edge cache"]
+  API["API Gateway + api Lambda"]
+  SRC[("S3 source bucket<br/>private, uploads/")]
+  P["processor Lambda<br/>Python 3.12 + Pillow"]
+  R["Amazon Rekognition<br/>(optional labels)"]
+  OUT[("S3 output bucket<br/>private, thumbs/ + meta/")]
+  CW["CloudWatch<br/>logs, dashboard, alarm"]
+
+  U -->|"page, API calls, thumbnails"| CF
+  CF -->|"page + /api"| API
+  CF -->|"thumbnails, cached 1 year"| OUT
+  API -->|"presigned upload form"| U
+  U -->|"upload, max 10 MB"| SRC
+  SRC -->|"ObjectCreated event"| P
+  P -->|"DetectLabels"| R
+  P -->|"thumbnail + result JSON"| OUT
+  API -->|"result JSON, cached in memory"| OUT
+  P --> CW
+  API --> CW
 ```
 
 | Service | Responsibility |
