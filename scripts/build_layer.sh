@@ -14,6 +14,7 @@ python3 -m pip install \
   --implementation cp \
   --python-version 3.12 \
   --only-binary=:all: \
+  --no-compile \
   --target build/layer/python \
   "pillow==${PILLOW_VERSION}"
 

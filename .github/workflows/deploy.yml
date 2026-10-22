@@ -1,0 +1,100 @@
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Never run two applies against the shared state at once.
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: eu-west-1
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q tests
+      - name: Check web app JavaScript parses
+        run: |
+          python -c "s=open('web/index.html').read(); open('/tmp/page.mjs','w').write(s.split('<script>')[1].split('</script>')[0])"
+          node --check /tmp/page.mjs
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # OIDC token for AWS, no stored keys
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.11.4
+          terraform_wrapper: false
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Build Pillow layer
+        run: ./scripts/build_layer.sh
+
+      - name: Terraform init
+        run: terraform -chdir=infra init -input=false -backend-config=backend.hcl
+
+      - name: Terraform plan
+        run: terraform -chdir=infra plan -input=false -no-color -out=tfplan | tee plan.txt
+
+      - name: Plan summary
+        run: |
+          {
+            echo '### Terraform plan'
+            echo '```'
+            grep -E '^\s+# |^Plan:|^No changes' plan.txt || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform apply (exactly the reviewed plan)
+        run: terraform -chdir=infra apply -input=false -no-color tfplan
+
+      - name: Smoke test live URL
+        run: |
+          URL=$(terraform -chdir=infra output -raw web_url)
+          CODE=$(terraform -chdir=infra output -raw team_code)
+          echo "::add-mask::$CODE"
+          python - "$URL" "$CODE" <<'PY'
+          import json, sys, urllib.request, urllib.error
+          url, code = sys.argv[1:]
+          def status(path, c=None):
+              req = urllib.request.Request(url + path, headers={"x-team-code": c} if c else {})
+              try:
+                  with urllib.request.urlopen(req, timeout=20) as r:
+                      return r.status, r.read()
+              except urllib.error.HTTPError as e:
+                  return e.code, b""
+          s, body = status("/")
+          assert s == 200 and b"SmartThumb SA" in body, f"page: {s}"
+          assert status("/api/config", "wrong")[0] == 401, "auth not enforced"
+          s, body = status("/api/config", code)
+          assert s == 200 and "labels_enabled" in json.loads(body), f"config: {s}"
+          print("smoke test passed")
+          PY
+          echo "Live: $URL" >> "$GITHUB_STEP_SUMMARY"

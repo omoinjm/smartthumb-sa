@@ -51,7 +51,20 @@ budget_email  = "you@example.com"    # monthly budget alert
 team_code     = "pick-something"     # otherwise one is generated: make code
 ```
 
-Teammates with AWS access: `make setup init` then `make deploy` to ship changes to the same live stack.
+### Continuous deployment (GitHub Actions)
+
+Every push to `main` runs `.github/workflows/deploy.yml`: unit tests → Pillow layer build →
+`terraform plan` → `terraform apply` of exactly that plan → smoke test of the live URL. Pull requests
+run the tests only. AWS access uses GitHub OIDC: no AWS keys are stored in GitHub.
+
+One-time setup (admin AWS credentials + `gh` logged in):
+
+```bash
+./scripts/bootstrap_ci.sh   # OIDC provider + github-deploy-smartthumb role (main branch only) + repo variable
+```
+
+After that, teammates just push to `main` (or open a PR) and never need AWS credentials.
+`make deploy` still works locally for anyone with AWS access.
 
 ## Test it
 
