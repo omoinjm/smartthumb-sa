@@ -101,21 +101,38 @@ Put permission-cleared real photos in `test_images/real/` before `make batch`, t
 
 ## Results
 
-First live run, 22 Oct 2026: `make batch` on the 20 generated files (15 valid, 5 invalid), with labels on.
-Re-run with real product photos in `test_images/real/` before presenting.
+Measured on the live stack on 22 Oct 2026 (eu-west-1, AI labels on). The data covers all **52 uploads**
+in the output bucket: the generated test set (`make batch`), in-browser test-suite runs, and
+**8 real product photos uploaded by teammates** (herbal products and cars). Plus 1 empty file that S3 refused
+before processing.
 
 | Metric | Target | Result |
 |---|---|---|
-| Valid images processed | ≥ 95% | **100%** (15/15) |
-| Invalid files handled | all, no crash | **5/5** rejected with a reason (fake JPEG, corrupt JPEG, .txt, .gif, empty file refused by S3) |
-| Avg size reduction | ≥ 50% | **83.7%** (median 98.8%); transparent logo −17.9%, 200×150 image 8.9% |
-| Auto-trigger rate | 100% | **100%**: every upload was processed with no manual step |
-| Labels rated useful | ≥ 80% | _pending team votes on real photos_ |
-| Lambda duration | baseline | avg **691 ms**, max 1,492 ms (1 GB memory, labels included) |
-| Est. cost per 100 images | calculate | **≈ $0.10**, almost all of it Rekognition ($0.001/image); about $0.002 without labels; Free Tier ignored |
+| Valid images processed | ≥ 95% | **100%** (39/39), 0 errors |
+| Invalid files handled | all, no crash | **13/13** rejected with a reason (fake/corrupt JPEG, .txt, .gif). The empty file was refused by S3 before upload |
+| Automatic triggering | 100% | **100%**: all 52 uploads were processed with no manual step |
+| Avg size reduction | ≥ 50% | **82.9%** across all valid images (median 97.1%); **93.0%** on the 8 real photos. Outliers: transparent logo PNG −17.9% (grew), 200×150 image 8.9% |
+| Thumbnail size | ≤ 300 px, aspect kept | All 39 within bounds. The browser test suite checks real pixel sizes: **7/7 requirements, 8/8 cases** |
+| Labels rated useful | ≥ 80% | **Not yet measurable**: 1 vote so far (1/1 useful). Needs reviewers to vote on the real photos in the Gallery |
+| Processing duration | record baseline | avg **842 ms**, median 645 ms, p95 1,474 ms, max 2,524 ms (1 GB Lambda, including avg 457 ms for Rekognition) |
+| Upload → visible result | — | about 4–8 s per file in the browser test suite (8 files in parallel, 18.8 s total including the CloudWatch log check) |
+| Manual time saved | measure, don't assume | **Not measured yet**: time a seller resizing a batch by hand and compare |
+| Est. cost per 100 images | calculate | **≈ $0.10** with labels (Rekognition is $0.001 of the ≈ $0.00103 per image); **≈ $0.003** without labels. List prices, Free Tier ignored |
 
-AI caveat seen in testing: a synthetic 5000×700 panorama of a bag was labelled "Weapon / Dynamite".
-Labels are suggestions for a human to review, not facts.
+What the labels looked like on the real photos (top labels, as suggested):
+
+| Photo | Suggested labels | Verdict (team to confirm) |
+|---|---|---|
+| ashwagandha-root-powder.jpg | Herbal, Herbs, Plant, Bottle, Cosmetics | relevant |
+| calm-chamomile-tea.jpg | Herbal, Herbs, Plant, Flower, Book | mostly relevant ("Book" is wrong) |
+| mens-vitality-powder.jpg | Herbal, Herbs, Plant, Astragalus, Flower | relevant |
+| AI-generated herbal tin | Cylinder, **Weapon**, Can, Tin, Herbal | mixed |
+| Aston-Martin-Vanquish.jpg | Machine, Wheel, Tire, Alloy Wheel, Car | relevant but generic |
+| g_class.jpg | Transportation, Vehicle, Car, Jeep, Moving Van | relevant ("Moving Van" is wrong) |
+
+Rekognition finds the product *category* well (herbal product, car, bag) but sometimes adds wrong labels:
+"Weapon" on a tin, and "Weapon / Dynamite" on a synthetic bag panorama. Labels are suggestions for a
+human to review, never facts.
 
 Known behaviour: flat graphics (e.g. a transparent logo PNG) can produce a thumbnail *larger*
 than the original, and images already ≤300 px only shrink by re-encoding.
