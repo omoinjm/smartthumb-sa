@@ -64,7 +64,10 @@ resource "aws_s3_bucket_cors_configuration" "source" {
 
   cors_rule {
     allowed_methods = ["POST", "GET"]
-    allowed_origins = concat([aws_apigatewayv2_api.web.api_endpoint], var.extra_cors_origins)
+    allowed_origins = concat(
+      [aws_apigatewayv2_api.web.api_endpoint, "https://${aws_cloudfront_distribution.web.domain_name}"],
+      var.extra_cors_origins,
+    )
     allowed_headers = ["*"]
     max_age_seconds = 3000
   }

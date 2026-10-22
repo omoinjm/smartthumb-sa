@@ -172,6 +172,9 @@ def process_record(record, request_id):
             Key=thumb_key,
             Body=thumb,
             ContentType=info["content_type"],
+            # Each upload gets a unique key, so its thumbnail never changes: let CloudFront
+            # and browsers keep it for a year.
+            CacheControl="public, max-age=31536000, immutable",
             Metadata={"source-key": urllib.parse.quote(key)},
         )
         meta.update(

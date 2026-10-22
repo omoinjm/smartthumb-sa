@@ -16,14 +16,15 @@ browse everyone's results, watch live logs and run the FR1–FR7 acceptance suit
 
 ```mermaid
 flowchart LR
-  U[Tester's browser<br/>web app] -- "POST /api/uploads" --> API[API Gateway HTTP API<br/>+ api Lambda]
+  U[Tester's browser<br/>web app] -- "page, /api/*, /thumbs/*" --> CF[CloudFront<br/>SA edge · cache]
+  CF -- "page + /api/*" --> API[API Gateway HTTP API<br/>+ api Lambda]
+  CF -- "/thumbs/* (cached 1 year)" --> OUT
   API -- presigned POST --> U
   U -- "upload (≤10 MB)" --> SRC[(S3 source bucket<br/>private · uploads/)]
   SRC -- "ObjectCreated" --> P[processor Lambda<br/>Python 3.12 + Pillow]
   P -- DetectLabels --> R[Amazon Rekognition<br/>optional]
   P -- "thumbs/ + meta/*.json" --> OUT[(S3 output bucket<br/>private)]
-  U -- "GET /api/results, /api/logs" --> API
-  API -- presigned GET --> OUT
+  API -- "meta/*.json (cached in memory)" --> OUT
   P & API --> CW[CloudWatch Logs<br/>+ dashboard + alarm]
 ```
 
@@ -32,7 +33,8 @@ flowchart LR
 | Amazon S3 | Private source bucket (originals) and output bucket (thumbnails + `meta/*.json`). Separate buckets make a recursive trigger impossible. |
 | AWS Lambda `processor` | Validates by *content* (not extension), applies EXIF rotation, resizes with Pillow, writes results. One bad file never fails the batch. |
 | Amazon Rekognition | `DetectLabels` (max 10, ≥70% confidence). Labels are suggestions only. Toggle: `enable_labels`. |
-| AWS Lambda `api` + API Gateway | Serves the web app, issues size-limited presigned uploads, lists results, records label votes, reads logs. Protected by a shared team code + throttling. |
+| AWS Lambda `api` + API Gateway | Serves the web app, issues size-limited presigned uploads, lists results (paged, with an in-memory cache of result files), records label votes, reads logs. Protected by a shared team code + throttling. |
+| Amazon CloudFront | One HTTPS address with edges in Johannesburg and Cape Town. Caches thumbnails (1 year) and the page (60 s), compresses responses, and keeps warm connections to Ireland for API calls. |
 | AWS IAM | One least-privilege role per function, scoped to bucket prefixes and log groups. |
 | Amazon CloudWatch | Structured JSON logs (14-day retention), dashboard, error alarm, optional budget alert. |
 
@@ -141,9 +143,21 @@ human to review, never facts.
 Known behaviour: flat graphics (e.g. a transparent logo PNG) can produce a thumbnail *larger*
 than the original, and images already ≤300 px only shrink by re-encoding.
 
+## Speed & caching
+
+Measured from South Africa before caching: page 3.1 s, gallery 8.4 s (about 4 s of it inside the Lambda), each thumbnail 0.8 s and never cached.
+
+| Layer | What is cached | How |
+|---|---|---|
+| CloudFront edge (Johannesburg/Cape Town) | Thumbnails for 1 year, the page for 60 s | Thumbnails are immutable (unique key per upload, `Cache-Control: immutable`); the page has `max-age=60` and an ETag, so a deploy shows up within a minute |
+| Browser | Thumbnails, page | Same headers; thumbnail URLs are now stable, so they are not downloaded again |
+| API Lambda memory | Every result file (`meta/*.json`) | Kept between requests while the Lambda is warm, re-downloaded only when its S3 ETag changes (e.g. after a vote) |
+| Response size | — | gzip for page and JSON, gallery sends 24 slim cards per page with a server-side summary |
+
 ## Security & cost
 
-- Both buckets are private (public access blocked, bucket-owner-enforced, SSE-S3). Browsers only ever get short-lived presigned URLs.
+- Both buckets are private (public access blocked, bucket-owner-enforced, SSE-S3). Originals are only reachable through short-lived presigned URLs.
+- Thumbnails are served by CloudFront through Origin Access Control: the bucket policy lets only this distribution read `thumbs/*`. Anyone who has a thumbnail's exact URL can view it (the keys are not listable). Meta files and originals stay private.
 - No credentials in code. The Lambdas use IAM roles, and the team code is a Terraform variable or generated value.
 - Cost guards: API throttling (10 rps, burst 20), account Lambda concurrency limit, 10 MB upload cap enforced by S3, 14-day object expiry, 14-day log retention, optional budget alert.
 - Teardown: `make destroy` removes everything, including bucket contents. The state bucket from `make bootstrap` is kept, so delete it by hand if you no longer need it.

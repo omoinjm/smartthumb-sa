@@ -1,5 +1,10 @@
 output "web_url" {
-  description = "Live URL to share with the team."
+  description = "Live URL to share with the team (CloudFront, fastest)."
+  value       = "https://${aws_cloudfront_distribution.web.domain_name}"
+}
+
+output "api_url" {
+  description = "Direct API Gateway URL (still works, slower from far away)."
   value       = aws_apigatewayv2_api.web.api_endpoint
 }
 

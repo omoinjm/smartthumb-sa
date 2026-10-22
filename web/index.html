@@ -116,6 +116,7 @@ a.btn { text-decoration: none; }
 .status.ok { background: rgba(15, 42, 29, .92); }
 .status.rejected { background: rgba(46, 35, 14, .92); color: var(--warn); }
 .status.error, .status.unreadable { background: rgba(52, 22, 26, .92); color: var(--err); }
+.more { display: flex; justify-content: center; margin-top: 20px; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .row.space { justify-content: space-between; }
 /* ---- logs ---- */
@@ -262,6 +263,7 @@ dialog input { width: 100%; }
       <div class="kpi"><span>Labels rated useful</span><b id="kpiVotes">—</b><small id="kpiVotesSub">target ≥ 80%</small></div>
     </div>
     <div class="grid" id="gallery"></div>
+    <div class="more"><button class="btn" id="galleryMore" hidden>Load more</button></div>
   </section>
 
   <section id="tab-logs" hidden>
@@ -490,34 +492,22 @@ document.addEventListener("click", async (ev) => {
     try { await api("POST", "/api/votes", { key: vote.dataset.key, useful: vote.dataset.vote === "1", tester: state.name }); toast("Vote saved"); if (activeTab === "gallery") loadGallery(); }
     catch (e) { toast("Vote failed: " + e.message); }
   }
+  const orig = ev.target.closest("[data-original]");
+  if (orig) {
+    // Originals stay private: fetch a short-lived link on demand. Open the tab first so popup blockers allow it.
+    const tab = window.open("about:blank", "_blank");
+    try { const { data } = await api("GET", "/api/original?key=" + encodeURIComponent(orig.dataset.original)); tab.location = data.url; }
+    catch (e) { tab && tab.close(); toast("Could not open original: " + e.message); }
+  }
   const lg = ev.target.closest("[data-logs]");
   if (lg) { $("#logFilter").value = lg.dataset.logs; resetLogs(); showTab("logs"); }
 });
 
 // ---------- gallery ----------
-async function loadGallery() {
-  const box = $("#gallery");
-  if (!box.children.length) box.innerHTML = '<div class="empty">Loading…</div>';
-  try {
-    const { data } = await api("GET", "/api/results?limit=60");
-    const f = galleryFilter;
-    const items = data.items.filter((m) => !f || (f === "mine" ? m.tester === state.name : m.status === f));
-    const ok = data.items.filter((m) => m.status === "ok");
-    // Success rate counts only files that were real images; deliberate bad uploads are "rejected" by design.
-    const failed = data.items.filter((m) => m.status === "error").length;
-    const avg = ok.length ? ok.reduce((s, m) => s + m.reduction_pct, 0) / ok.length : 0;
-    const votes = data.items.flatMap((m) => Object.values(m.votes || {}));
-    const up = votes.filter(Boolean).length;
-    $("#galleryStats").textContent = `Recent results from the whole team · showing ${items.length} of ${data.total}`;
-    $("#kpiTotal").textContent = data.total;
-    $("#kpiTotalSub").textContent = `${ok.length} ok · ${data.items.filter((m) => m.status === "rejected").length} rejected · ${failed} errors (latest ${data.items.length})`;
-    $("#kpiOk").textContent = ok.length + failed ? Math.round((ok.length / (ok.length + failed)) * 100) + "%" : "—";
-    $("#kpiRed").textContent = ok.length ? avg.toFixed(1) + "%" : "—";
-    $("#kpiVotes").textContent = votes.length ? Math.round((up / votes.length) * 100) + "%" : "—";
-    $("#kpiVotesSub").textContent = votes.length ? `${up} of ${votes.length} votes · target ≥ 80%` : "no votes yet · target ≥ 80%";
-    const noThumb = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 3l18 18"/></svg>';
-    box.innerHTML = items.length ? items.map((m) => `<div class="panel card">
-      <div class="thumb">${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="${esc(fileOf(m.key))}" loading="lazy">` : `<div class="x">${noThumb}${esc(m.reason || m.status)}</div>`}
+const NO_THUMB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 3l18 18"/></svg>';
+function galleryCard(m) {
+  return `<div class="panel card">
+      <div class="thumb">${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="${esc(fileOf(m.key))}" loading="lazy" decoding="async" width="${m.thumb_width || ""}" height="${m.thumb_height || ""}">` : `<div class="x">${NO_THUMB}${esc(m.reason || m.status)}</div>`}
         <span class="badge status sm ${esc(m.status)}">${esc(m.status)}</span></div>
       <div class="body">
         <div class="name">${esc(fileOf(m.key))}</div>
@@ -525,13 +515,42 @@ async function loadGallery() {
           ${m.status === "ok" ? `<span>${m.thumb_width}×${m.thumb_height}</span>${m.reduction_pct >= 0 ? `<b>−${m.reduction_pct}%</b>` : `<b class="grew" title="Thumbnail is larger than the original">+${-m.reduction_pct}% larger</b>`}<span>${m.duration_ms} ms</span>` : ""}</div>
         ${m.status === "ok" ? labelsHtml(m) : ""}${votesHtml(m)}
         <div class="foot"><button class="btn small" data-logs="${esc(idOf(m.key))}">View logs</button>
-          ${m.original_url ? `<a class="btn small" href="${esc(m.original_url)}" target="_blank" rel="noopener">Original ↗</a>` : ""}</div>
+          <button class="btn small" data-original="${esc(m.key)}">Original ↗</button></div>
       </div>
-    </div>`).join("") : '<div class="empty">Nothing here yet. Upload something!</div>';
+    </div>`;
+}
+// The server pages, filters and summarises; the browser asks for 24 cards at a time.
+let galleryNext = null;
+async function loadGallery(more = false) {
+  const box = $("#gallery");
+  if (!more && !box.children.length) box.innerHTML = '<div class="empty">Loading…</div>';
+  const q = new URLSearchParams({ limit: 24, offset: more ? galleryNext : 0 });
+  if (galleryFilter === "mine") q.set("tester", state.name);
+  else if (galleryFilter) q.set("status", galleryFilter);
+  try {
+    $("#galleryMore").disabled = true;
+    const { data } = await api("GET", "/api/results?" + q);
+    const s = data.summary;
+    $("#galleryStats").textContent = `Recent results from the whole team · ${data.matched} of ${data.total} shown by this filter`;
+    $("#kpiTotal").textContent = s.total;
+    $("#kpiTotalSub").textContent = `${s.ok} ok · ${s.rejected} rejected · ${s.errors} errors`;
+    // Success rate counts only real images; deliberate bad uploads are "rejected" by design.
+    $("#kpiOk").textContent = s.success_pct == null ? "—" : Math.round(s.success_pct) + "%";
+    $("#kpiRed").textContent = s.avg_reduction_pct == null ? "—" : s.avg_reduction_pct.toFixed(1) + "%";
+    $("#kpiVotes").textContent = s.votes_total ? Math.round((s.votes_up / s.votes_total) * 100) + "%" : "—";
+    $("#kpiVotesSub").textContent = s.votes_total ? `${s.votes_up} of ${s.votes_total} votes · target ≥ 80%` : "no votes yet · target ≥ 80%";
+    const html = data.items.map(galleryCard).join("");
+    if (more) box.insertAdjacentHTML("beforeend", html);
+    else box.innerHTML = html || '<div class="empty">Nothing here yet. Upload something!</div>';
+    galleryNext = data.next_offset;
+    $("#galleryMore").hidden = galleryNext == null;
+    $("#galleryMore").textContent = galleryNext == null ? "Load more" : `Load more (${data.matched - galleryNext} left)`;
   } catch (e) { if (e.message !== "unauthorised") box.innerHTML = `<div class="empty">Could not load: ${esc(e.message)}</div>`; }
+  finally { $("#galleryMore").disabled = false; }
 }
 let galleryFilter = "";
-$("#galleryRefresh").onclick = loadGallery;
+$("#galleryRefresh").onclick = () => loadGallery();
+$("#galleryMore").onclick = () => loadGallery(true);
 document.querySelectorAll("#galleryFilter button").forEach((b) => (b.onclick = () => {
   galleryFilter = b.dataset.f;
   document.querySelectorAll("#galleryFilter button").forEach((x) => x.setAttribute("aria-pressed", x === b));

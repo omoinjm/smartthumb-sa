@@ -89,7 +89,7 @@ resource "aws_lambda_function" "api" {
   handler          = "handler.lambda_handler"
   filename         = data.archive_file.api.output_path
   source_code_hash = data.archive_file.api.output_base64sha256
-  memory_size      = 256
+  memory_size      = 1024 # more memory = more CPU and network for the gallery fan-out
   timeout          = 20
 
   environment {
@@ -101,6 +101,7 @@ resource "aws_lambda_function" "api" {
       PROCESSOR_LOG_GROUP = aws_cloudwatch_log_group.processor.name
       API_LOG_GROUP       = aws_cloudwatch_log_group.api.name
       DASHBOARD_URL       = local.dashboard_url
+      THUMB_BASE_URL      = "https://${aws_cloudfront_distribution.web.domain_name}"
     }
   }
 
