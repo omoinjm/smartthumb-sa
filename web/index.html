@@ -70,22 +70,83 @@ input, select { font: inherit; padding: 7px 10px; border: 1px solid var(--line);
 .chip { font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
 .name { font-weight: 600; word-break: break-all; }
 .muted { color: var(--muted); font-size: 13px; }
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-.card { padding: 10px; display: flex; flex-direction: column; gap: 6px; }
-.card .thumb { height: 170px; display: grid; place-items: center; background: var(--code); border-radius: 8px; overflow: hidden; }
-.card .thumb img { max-width: 100%; max-height: 170px; }
-.card .thumb .x { color: var(--muted); font-size: 13px; padding: 10px; text-align: center; }
+/* ---- shared page chrome for Gallery / Logs ---- */
+.page-head { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; margin: 12px 0 20px; }
+.page-head h2 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 4px; }
+.page-head p { margin: 0; color: var(--muted); font-size: 15px; }
+input, select { background: var(--panel-2); border-color: var(--line-strong); padding: 8px 12px; }
+input:focus, select:focus, .btn:focus-visible, .seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+select { appearance: none; padding-right: 32px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238e9ab0' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+.btn { background: transparent; border-color: var(--line-strong); font-weight: 500; display: inline-flex; align-items: center; gap: 7px; }
+.btn:hover:not(:disabled) { background: var(--panel-2); }
+.btn.primary:hover:not(:disabled) { background: #2f6fdb; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; overflow-x: auto; max-width: 100%; }
+.seg button { border: 0; background: none; color: var(--muted); font: inherit; font-size: 14px; font-weight: 500; padding: 6px 13px; border-radius: 7px; cursor: pointer; white-space: nowrap; }
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--accent-soft); color: #9cc3ff; font-weight: 600; }
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+.kpi { background: linear-gradient(180deg, rgba(19, 28, 49, .8), rgba(15, 23, 42, .6)); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.kpi span { display: block; color: var(--muted); font-size: 13px; }
+.kpi b { display: block; font-size: 26px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 2px; }
+.kpi small { color: var(--muted); font-size: 12.5px; }
+/* ---- gallery cards ---- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.card { padding: 0; display: flex; flex-direction: column; overflow: hidden; transition: border-color .15s, transform .15s; }
+.card:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.card .thumb { position: relative; height: 190px; display: grid; place-items: center; background: repeating-conic-gradient(#0d1528 0 25%, #101a30 0 50%) 0 0/18px 18px; border-bottom: 1px solid var(--line); }
+.card .thumb img { max-width: 100%; max-height: 190px; display: block; }
+.card .thumb .x { color: var(--muted); font-size: 13px; padding: 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.card .thumb .x svg { width: 34px; height: 34px; opacity: .6; }
+.card .badge { position: absolute; top: 10px; right: 10px; }
+.card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.card .body .name { font-size: 14px; }
+.card .meta { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.card .meta b { color: var(--ok); font-weight: 600; }
+.card .meta b.grew { color: var(--warn); }
+a.btn { text-decoration: none; }
+.card .foot { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.card .foot .grow { flex: 1; }
+.status.sm { font-size: 12px; padding: 3px 9px; border-radius: 99px; backdrop-filter: blur(6px); }
+.status.ok { background: rgba(15, 42, 29, .92); }
+.status.rejected { background: rgba(46, 35, 14, .92); color: var(--warn); }
+.status.error, .status.unreadable { background: rgba(52, 22, 26, .92); color: var(--err); }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .row.space { justify-content: space-between; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-.logs { font: 12.5px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border: 1px solid var(--line); border-radius: 10px; height: 62vh; overflow: auto; padding: 8px 0; }
-.logs .l { display: grid; grid-template-columns: 86px 74px 56px 1fr; gap: 10px; padding: 2px 12px; border-left: 3px solid transparent; }
-.logs .l:hover { background: var(--panel); }
-.logs .l.ERROR { border-left-color: var(--err); }
+/* ---- logs ---- */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.search { position: relative; flex: 1; min-width: 220px; }
+.search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.search input { width: 100%; padding-left: 34px; }
+.switch { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; cursor: pointer; user-select: none; }
+.switch input { appearance: none; width: 34px; height: 20px; padding: 0; border-radius: 99px; background: var(--line-strong); border: 0; position: relative; cursor: pointer; transition: background .15s; }
+.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #cbd5e1; transition: transform .15s; }
+.switch input:checked { background: var(--accent); }
+.switch input:checked::after { transform: translateX(14px); background: #fff; }
+.live { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--ok); }
+.live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 0 currentColor; animation: pulse 1.8s infinite; }
+.live.paused { color: var(--muted); }
+.live.paused::before { animation: none; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, .5); } 70% { box-shadow: 0 0 0 7px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
+@media (prefers-reduced-motion: reduce) { .live::before { animation: none; } .card:hover { transform: none; } }
+.term { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #070c18; }
+.term-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; background: var(--panel); border-bottom: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.term-bar .dots { display: inline-flex; gap: 6px; margin-right: 6px; }
+.term-bar .dots i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); }
+.logs { font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; height: 62vh; overflow: auto; padding: 8px 0; }
+.logs .l { display: grid; grid-template-columns: 78px 84px 60px 1fr; gap: 12px; align-items: baseline; padding: 3px 14px; border-left: 3px solid transparent; }
+.logs .l:hover { background: rgba(59, 130, 246, .06); }
+.logs .l.ERROR { border-left-color: var(--err); background: rgba(248, 113, 113, .05); }
 .logs .l.WARN { border-left-color: var(--warn); }
-.logs .l .t, .logs .l .s { color: var(--muted); }
-.logs .l .m { white-space: pre-wrap; word-break: break-word; }
-.logs .l .ev { font-weight: 700; }
+.logs .l .t { color: #64718a; }
+.logs .l .s { font-weight: 600; }
+.logs .l .s.processor { color: #7cb2ff; }
+.logs .l .s.api { color: #c4a5ff; }
+.logs .l .m { white-space: pre-wrap; word-break: break-word; color: #cbd5e1; }
+.logs .l .m .k { color: #64718a; }
+.logs .l .ev { font-weight: 700; color: var(--ink); }
+.logs .pill { font-size: 11px; padding: 0 7px; }
+.pill.INFO { background: #12203a; color: #8fb4f0; }
+.logs .empty { font-family: system-ui, sans-serif; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; font-size: 13px; }
@@ -102,7 +163,9 @@ dialog input { width: 100%; }
   .result { grid-template-columns: 1fr 1fr; }
   .result .info { grid-column: 1 / -1; }
   .cols { grid-template-columns: 1fr; }
-  .logs .l { grid-template-columns: 70px 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+  .page-head h2 { font-size: 22px; }
+  .logs .l { grid-template-columns: 64px 1fr; }
   .logs .l .s, .logs .l .lv { display: none; }
 }
 </style>
@@ -150,28 +213,52 @@ dialog input { width: 100%; }
   </section>
 
   <section id="tab-gallery" hidden>
-    <div class="row space" style="margin-bottom:12px">
-      <div><h2>Recent results from the whole team</h2><p class="sub" id="galleryStats" style="margin:0">—</p></div>
+    <div class="page-head">
+      <div><h2>Gallery</h2><p id="galleryStats">Recent results from the whole team</p></div>
       <div class="row">
-        <select id="galleryFilter"><option value="">All</option><option value="ok">OK</option><option value="rejected">Rejected</option><option value="error">Error</option><option value="mine">Mine</option></select>
-        <button class="btn" id="galleryRefresh">Refresh</button>
+        <div class="seg" id="galleryFilter" role="group" aria-label="Filter results">
+          <button data-f="" aria-pressed="true">All</button><button data-f="ok" aria-pressed="false">OK</button><button data-f="rejected" aria-pressed="false">Rejected</button><button data-f="error" aria-pressed="false">Error</button><button data-f="mine" aria-pressed="false">Mine</button>
+        </div>
+        <button class="btn" id="galleryRefresh">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+          Refresh
+        </button>
       </div>
+    </div>
+    <div class="kpis" id="galleryKpis">
+      <div class="kpi"><span>Processed</span><b id="kpiTotal">—</b><small id="kpiTotalSub">&nbsp;</small></div>
+      <div class="kpi"><span>Success rate</span><b id="kpiOk">—</b><small>valid images · target ≥ 95%</small></div>
+      <div class="kpi"><span>Avg size reduction</span><b id="kpiRed">—</b><small>target ≥ 50%</small></div>
+      <div class="kpi"><span>Labels rated useful</span><b id="kpiVotes">—</b><small id="kpiVotesSub">target ≥ 80%</small></div>
     </div>
     <div class="grid" id="gallery"></div>
   </section>
 
   <section id="tab-logs" hidden>
-    <h2>Live logs</h2>
-    <p class="sub">CloudWatch Logs from the processor and api Lambdas. Refreshes every 3 seconds while this tab is open.</p>
-    <div class="toolbar">
-      <input id="logFilter" placeholder="filter text, e.g. a key or request id" style="flex:1;min-width:200px">
-      <select id="logSource"><option value="all">All functions</option><option value="processor">processor</option><option value="api">api</option></select>
-      <select id="logLevel"><option value="">All levels</option><option value="WARN">WARN+</option><option value="ERROR">ERROR</option></select>
-      <label class="muted"><input type="checkbox" id="logPlatform"> show START/END</label>
-      <button class="btn" id="logPause">Pause</button>
-      <button class="btn" id="logClear">Clear</button>
+    <div class="page-head">
+      <div><h2>Logs</h2><p>CloudWatch Logs from the processor and api Lambdas, refreshed every 3 seconds</p></div>
+      <div class="row">
+        <span class="live" id="liveState">Live</span>
+        <button class="btn" id="logPause">
+          <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M9 5v14M15 5v14"/></svg>
+          <span>Pause</span>
+        </button>
+        <button class="btn" id="logClear">Clear</button>
+      </div>
     </div>
-    <div class="logs" id="logBox"><div class="empty">Waiting for log events…</div></div>
+    <div class="toolbar">
+      <label class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+        <input id="logFilter" placeholder="Filter by key, request id or any text" aria-label="Filter logs">
+      </label>
+      <select id="logSource" aria-label="Function"><option value="all">All functions</option><option value="processor">processor</option><option value="api">api</option></select>
+      <select id="logLevel" aria-label="Level"><option value="">All levels</option><option value="WARN">Warnings + errors</option><option value="ERROR">Errors only</option></select>
+      <label class="switch"><input type="checkbox" id="logPlatform"> START / END lines</label>
+    </div>
+    <div class="term">
+      <div class="term-bar"><span><span class="dots"><i></i><i></i><i></i></span>smartthumb · eu-west-1</span><span id="logCount">0 events</span></div>
+      <div class="logs" id="logBox"><div class="empty">Waiting for log events…</div></div>
+    </div>
   </section>
 
   <section id="tab-tests" hidden>
@@ -368,24 +455,43 @@ async function loadGallery() {
   if (!box.children.length) box.innerHTML = '<div class="empty">Loading…</div>';
   try {
     const { data } = await api("GET", "/api/results?limit=60");
-    const f = $("#galleryFilter").value;
+    const f = galleryFilter;
     const items = data.items.filter((m) => !f || (f === "mine" ? m.tester === state.name : m.status === f));
     const ok = data.items.filter((m) => m.status === "ok");
+    // Success rate counts only files that were real images; deliberate bad uploads are "rejected" by design.
+    const failed = data.items.filter((m) => m.status === "error").length;
     const avg = ok.length ? ok.reduce((s, m) => s + m.reduction_pct, 0) / ok.length : 0;
     const votes = data.items.flatMap((m) => Object.values(m.votes || {}));
-    $("#galleryStats").textContent = `${data.total} processed in total · showing ${items.length} · ${ok.length}/${data.items.length} ok · avg reduction ${avg.toFixed(1)}% · labels rated useful ${votes.filter(Boolean).length}/${votes.length}`;
+    const up = votes.filter(Boolean).length;
+    $("#galleryStats").textContent = `Recent results from the whole team · showing ${items.length} of ${data.total}`;
+    $("#kpiTotal").textContent = data.total;
+    $("#kpiTotalSub").textContent = `${ok.length} ok · ${data.items.filter((m) => m.status === "rejected").length} rejected · ${failed} errors (latest ${data.items.length})`;
+    $("#kpiOk").textContent = ok.length + failed ? Math.round((ok.length / (ok.length + failed)) * 100) + "%" : "—";
+    $("#kpiRed").textContent = ok.length ? avg.toFixed(1) + "%" : "—";
+    $("#kpiVotes").textContent = votes.length ? Math.round((up / votes.length) * 100) + "%" : "—";
+    $("#kpiVotesSub").textContent = votes.length ? `${up} of ${votes.length} votes · target ≥ 80%` : "no votes yet · target ≥ 80%";
+    const noThumb = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 3l18 18"/></svg>';
     box.innerHTML = items.length ? items.map((m) => `<div class="panel card">
-      <div class="thumb">${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="">` : `<div class="x">${esc(m.reason || m.status)}</div>`}</div>
-      <div class="row space"><span class="name" style="font-size:13px">${esc(fileOf(m.key))}</span><span class="pill ${esc(m.status)}">${esc(m.status)}</span></div>
-      <div class="muted">${esc(m.tester)} · ${esc((m.processed_at || "").replace("T", " ").replace("Z", ""))}</div>
-      ${m.status === "ok" ? `<div class="muted">${m.thumb_width}×${m.thumb_height} · −${m.reduction_pct}% · ${m.duration_ms} ms</div>` : ""}
-      ${m.status === "ok" ? labelsHtml(m) : ""}${votesHtml(m)}
-      <div class="row"><button class="btn small" data-logs="${esc(idOf(m.key))}">Logs</button>${m.original_url ? `<a class="btn small" href="${esc(m.original_url)}" target="_blank" rel="noopener">Original ↗</a>` : ""}</div>
-    </div>`).join("") : '<div class="empty">Nothing yet. Upload something!</div>';
+      <div class="thumb">${m.thumb_url ? `<img src="${esc(m.thumb_url)}" alt="${esc(fileOf(m.key))}" loading="lazy">` : `<div class="x">${noThumb}${esc(m.reason || m.status)}</div>`}
+        <span class="badge status sm ${esc(m.status)}">${esc(m.status)}</span></div>
+      <div class="body">
+        <div class="name">${esc(fileOf(m.key))}</div>
+        <div class="meta"><span>${esc(m.tester)}</span><span>${esc((m.processed_at || "").slice(5, 16).replace("T", " "))}</span>
+          ${m.status === "ok" ? `<span>${m.thumb_width}×${m.thumb_height}</span>${m.reduction_pct >= 0 ? `<b>−${m.reduction_pct}%</b>` : `<b class="grew" title="Thumbnail is larger than the original">+${-m.reduction_pct}% larger</b>`}<span>${m.duration_ms} ms</span>` : ""}</div>
+        ${m.status === "ok" ? labelsHtml(m) : ""}${votesHtml(m)}
+        <div class="foot"><button class="btn small" data-logs="${esc(idOf(m.key))}">View logs</button>
+          ${m.original_url ? `<a class="btn small" href="${esc(m.original_url)}" target="_blank" rel="noopener">Original ↗</a>` : ""}</div>
+      </div>
+    </div>`).join("") : '<div class="empty">Nothing here yet. Upload something!</div>';
   } catch (e) { if (e.message !== "unauthorised") box.innerHTML = `<div class="empty">Could not load: ${esc(e.message)}</div>`; }
 }
+let galleryFilter = "";
 $("#galleryRefresh").onclick = loadGallery;
-$("#galleryFilter").onchange = loadGallery;
+document.querySelectorAll("#galleryFilter button").forEach((b) => (b.onclick = () => {
+  galleryFilter = b.dataset.f;
+  document.querySelectorAll("#galleryFilter button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  loadGallery();
+}));
 
 // ---------- logs ----------
 let logSince = 0, logPaused = false, logTimer = null; const seen = new Set();
@@ -393,16 +499,16 @@ function resetLogs() { logSince = 0; seen.clear(); $("#logBox").innerHTML = '<di
 const PLATFORM = /^(START|END|INIT_START|EXTENSION|TELEMETRY)\b/;
 function renderLog(e) {
   const lvl = e.level || "INFO";
-  const t = new Date(e.ts).toLocaleTimeString();
+  const t = new Date(e.ts).toLocaleTimeString([], { hour12: false });
   let body;
   if (e.event === "raw" || e.event === "lambda_report") body = esc(e.message);
   else {
     const { level, event, source, ts, id, ...rest } = e;
     const kv = Object.entries(rest).filter(([, v]) => v != null && v !== "" && !(Array.isArray(v) && !v.length))
-      .map(([k, v]) => `${k}=${esc(typeof v === "object" ? JSON.stringify(v) : v)}`).join("  ");
+      .map(([k, v]) => `<span class="k">${k}=</span>${esc(typeof v === "object" ? JSON.stringify(v) : v)}`).join("  ");
     body = `<span class="ev">${esc(event)}</span>  ${kv}`;
   }
-  return `<div class="l ${esc(lvl)}"><span class="t">${t}</span><span class="s">${esc(e.source)}</span><span class="lv"><span class="pill ${esc(lvl)}">${esc(lvl)}</span></span><span class="m">${body}</span></div>`;
+  return `<div class="l ${esc(lvl)}"><span class="t">${t}</span><span class="s ${esc(e.source)}">${esc(e.source)}</span><span class="lv"><span class="pill ${esc(lvl)}">${esc(lvl)}</span></span><span class="m">${body}</span></div>`;
 }
 async function pollLogs(immediate) {
   clearTimeout(logTimer);
@@ -425,13 +531,21 @@ async function pollLogs(immediate) {
         box.insertAdjacentHTML("beforeend", shown.map(renderLog).join(""));
         if (atBottom) box.scrollTop = box.scrollHeight;
       }
+      const n = box.querySelectorAll(".l").length;
+      $("#logCount").textContent = `${n} event${n === 1 ? "" : "s"}`;
     } catch (e) { if (e.message !== "unauthorised") toast("Logs: " + e.message); }
   }
   logTimer = setTimeout(pollLogs, 3000);
 }
 ["#logFilter", "#logSource", "#logLevel", "#logPlatform"].forEach((s) => $(s).addEventListener("change", () => { resetLogs(); pollLogs(); }));
-$("#logPause").onclick = () => { logPaused = !logPaused; $("#logPause").textContent = logPaused ? "Resume" : "Pause"; if (!logPaused) pollLogs(); };
-$("#logClear").onclick = () => { $("#logBox").innerHTML = ""; };
+$("#logPause").onclick = () => {
+  logPaused = !logPaused;
+  $("#logPause span").textContent = logPaused ? "Resume" : "Pause";
+  $("#liveState").textContent = logPaused ? "Paused" : "Live";
+  $("#liveState").classList.toggle("paused", logPaused);
+  if (!logPaused) pollLogs();
+};
+$("#logClear").onclick = () => { $("#logBox").innerHTML = ""; $("#logCount").textContent = "0 events"; };
 
 // ---------- test suite ----------
 function canvasFile(name, w, h, type, { alpha = false, seed = 1 } = {}) {
