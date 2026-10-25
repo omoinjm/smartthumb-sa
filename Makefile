@@ -15,7 +15,7 @@ help:
 	@echo "logs       tail processor logs in the terminal"
 	@echo "images     generate synthetic test images in test_images/"
 	@echo "batch      run test_images/ through the live API -> results/metrics.csv"
-	@echo "destroy    tear everything down"
+	@echo "destroy    tear everything down (scripts/teardown.sh)"
 
 setup:
 	uv venv -q .venv && uv pip install -q --python $(PY) -r requirements-dev.txt
@@ -58,4 +58,4 @@ batch:
 	$(PY) scripts/batch_test.py --url "$$($(TF) output -raw web_url)" --code "$$($(TF) output -raw team_code)"
 
 destroy:
-	$(TF) destroy
+	./scripts/teardown.sh

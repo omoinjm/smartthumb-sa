@@ -20,7 +20,9 @@ make logs                       # tail processor CloudWatch logs (needs AWS cred
 No linter is configured. CI also checks that the page's inline JS parses:
 `python -c "s=open('web/index.html').read(); open('/tmp/page.mjs','w').write(s.split('<script>')[1].split('</script>')[0])" && node --check /tmp/page.mjs`
 
-**Deploying = pushing to `main`.** `.github/workflows/deploy.yml` runs tests, builds the Pillow layer, runs `terraform plan -out`, applies exactly that plan, then smoke-tests the live URL. Pull requests run tests only. AWS access uses OIDC: the `github-deploy-smartthumb` role trusts this repo's *immutable* OIDC subject (`repo:owner@<id>/name@<id>`), and `scripts/bootstrap_ci.sh` reads that prefix from the GitHub API.
+**Setup / teardown:** `scripts/setup.sh [--email ...] [--with-ci] [--no-labels]` goes from an empty account to a live URL (state bucket, layer, saved-plan apply, budget). `scripts/teardown.sh` removes everything except the account-level budget (`scripts/budget.sh`, deliberately outside Terraform), backing the buckets up to `results/backup-<date>/` first.
+
+**CI is disabled** (`gh workflow disable`). When enabled via `setup.sh --with-ci`, pushing to `main` deploys: `.github/workflows/deploy.yml` runs tests, builds the Pillow layer, runs `terraform plan -out`, applies exactly that plan, then smoke-tests the live URL. Pull requests run tests only. AWS access uses OIDC: the `github-deploy-smartthumb` role trusts this repo's *immutable* OIDC subject (`repo:owner@<id>/name@<id>`), and `scripts/bootstrap_ci.sh` reads that prefix from the GitHub API.
 
 Local `make deploy` also works. The Makefile wraps Terraform with `aws configure export-credentials` because Terraform can't read `aws login` sessions. State is shared in S3 (`infra/backend.hcl`, lockfile), so local and CI applies hit the same stack.
 

@@ -23,18 +23,6 @@ variable "team_code" {
   sensitive   = true
 }
 
-variable "budget_email" {
-  description = "Email for the monthly AWS budget alert. Leave empty to skip creating the budget."
-  type        = string
-  default     = ""
-}
-
-variable "budget_usd" {
-  description = "Monthly budget alert threshold in USD."
-  type        = number
-  default     = 5
-}
-
 variable "log_retention_days" {
   type    = number
   default = 14

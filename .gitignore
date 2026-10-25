@@ -11,3 +11,4 @@ test_images/real/*
 !test_images/real/README.md
 test_images/generated/
 infra/tfplan
+results/backup-*/

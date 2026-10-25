@@ -46,41 +46,37 @@ flowchart LR
 | AWS Lambda `api` + API Gateway | Serves the web app, issues size-limited presigned uploads, lists results (paged, with an in-memory cache of result files), records label votes, reads logs. Protected by a shared team code + throttling. |
 | Amazon CloudFront | One HTTPS address with edges in Johannesburg and Cape Town. Caches thumbnails (1 year) and the page (60 s), compresses responses, and keeps warm connections to Ireland for API calls. |
 | AWS IAM | One least-privilege role per function, scoped to bucket prefixes and log groups. |
-| Amazon CloudWatch | Structured JSON logs (14-day retention), dashboard, error alarm, optional budget alert. |
+| Amazon CloudWatch | Structured JSON logs (14-day retention), dashboard, error alarm. |
 
-## Deploy (team lead, once)
+## Deploy
 
-Prereqs: Terraform ≥ 1.10, Python 3.12, AWS CLI v2 logged in to the team account (`aws login` or `aws configure sso`), region **eu-west-1**.
-
-```bash
-make setup          # local venv for tests/scripts
-make bootstrap      # once per account: shared Terraform state bucket -> infra/backend.hcl (commit it)
-make init
-make deploy         # runs tests, builds the Pillow layer, terraform apply; prints URL + team code
-```
-
-Optional settings in `infra/terraform.tfvars` (git-ignored):
-
-```hcl
-enable_labels = true                 # Rekognition on/off
-budget_email  = "you@example.com"    # monthly budget alert
-team_code     = "pick-something"     # otherwise one is generated: make code
-```
-
-### Continuous deployment (GitHub Actions)
-
-Every push to `main` runs `.github/workflows/deploy.yml`: unit tests → Pillow layer build →
-`terraform plan` → `terraform apply` of exactly that plan → smoke test of the live URL. Pull requests
-run the tests only. AWS access uses GitHub OIDC: no AWS keys are stored in GitHub.
-
-One-time setup (admin AWS credentials + `gh` logged in):
+Prereqs: Terraform ≥ 1.10, Python 3.12, AWS CLI v2 logged in to the account (`aws login` or `aws configure sso`). Everything goes to **eu-west-1**.
 
 ```bash
-./scripts/bootstrap_ci.sh   # OIDC provider + github-deploy-smartthumb role (main branch only) + repo variable
+scripts/setup.sh --email you@example.com   # state bucket, Pillow layer, terraform apply, budget alert
 ```
 
-After that, teammates just push to `main` (or open a PR) and never need AWS credentials.
-`make deploy` still works locally for anyone with AWS access.
+It is safe to re-run and finishes by printing the live URL and team code (`make url` / `make code` later).
+Options: `--no-labels` turns Rekognition off, `--with-ci` also sets up GitHub Actions (below), and
+`TF_VAR_team_code=...` picks the team code instead of generating one. `--email` creates an
+account-level budget ($5/month; emails at 80% actual and 100% forecast) that teardown leaves in place.
+
+To remove everything (app stack, state bucket, CI role, layer versions), downloading both buckets
+into `results/backup-<date>/` first:
+
+```bash
+scripts/teardown.sh          # add --no-backup to skip the download
+```
+
+For day-to-day work after setup: `make setup` (local venv), `make test`, `make deploy`.
+
+### Continuous deployment (GitHub Actions, off by default)
+
+`.github/workflows/deploy.yml` runs unit tests → Pillow layer build → `terraform plan` → `terraform apply`
+of exactly that plan → smoke test of the live URL on every push to `main`. The workflow is
+disabled. `scripts/setup.sh --with-ci` (needs `gh` with admin on the repo) creates the GitHub OIDC
+provider, the `github-deploy-smartthumb` role (main branch only) and the repo variable, then
+re-enables the workflow. No AWS keys are stored in GitHub.
 
 ## Test it
 
@@ -177,8 +173,8 @@ Measured from South Africa before caching: page 3.1 s, gallery 8.4 s (about 4 s 
 - Both buckets are private (public access blocked, bucket-owner-enforced, SSE-S3). Originals are only reachable through short-lived presigned URLs.
 - Thumbnails are served by CloudFront through Origin Access Control: the bucket policy lets only this distribution read `thumbs/*`. Anyone who has a thumbnail's exact URL can view it (the keys are not listable). Meta files and originals stay private.
 - No credentials in code. The Lambdas use IAM roles, and the team code is a Terraform variable or generated value.
-- Cost guards: API throttling (10 rps, burst 20), account Lambda concurrency limit, 10 MB upload cap enforced by S3, 14-day object expiry, 14-day log retention, optional budget alert.
-- Teardown: `make destroy` removes everything, including bucket contents. The state bucket from `make bootstrap` is kept, so delete it by hand if you no longer need it.
+- Cost guards: API throttling (10 rps, burst 20), account Lambda concurrency limit, 10 MB upload cap enforced by S3, 14-day object expiry, 14-day log retention, budget alert (`scripts/budget.sh`).
+- Teardown: `scripts/teardown.sh` (or `make destroy`) removes everything, including bucket contents and the state bucket. Only the budget alert stays.
 
 ## Limitations / next steps
 
