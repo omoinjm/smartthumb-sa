@@ -12,3 +12,6 @@ test_images/real/*
 test_images/generated/
 infra/tfplan
 results/backup-*/
+
+# direnv (local AWS profile)
+.envrc
